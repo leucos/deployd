@@ -15,7 +15,7 @@ LOCK_FILE="$APP_DIR/var/${APP}.lock"
 PID_FILE="$APP_DIR/var/${APP}.pid"
 GEMFILE="$APP_DIR/Gemfile"
 APP_ENV="production"
-PORT="4657"
+PORT="4567"
 BUNDLE="bundle"
 
 START_CMD="$BUNDLE exec rackup -p ${PORT} -E ${APP_ENV} -P ${PID_FILE} deployd.rb"
