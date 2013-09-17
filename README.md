@@ -4,6 +4,10 @@ Sinatra Web app tha listens to URL hook calls from gitlab.
 
 # Setup
 
+$ git clone git@gitlab.erasme.org:mblanc/deployd.git
+$ cd deployd
+$ bundle
+
 Put your app config in config/keys.rb
 
 edit init script (app dir, user, ...) and Copy init script at the right place :
