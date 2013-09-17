@@ -2,7 +2,7 @@
 #
 # Format :
 # 'keyname' => { :secret => 'key_secret',
- #               :working_dir => '/some/directory/' }
+#                :working_dir => '/some/directory/' }
 
 # Where  : 
 # - keyname is some name you want to address your app as
