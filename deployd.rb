@@ -4,6 +4,7 @@ require 'sinatra/base'
 require 'git'
 require 'json'
 require 'fileutils'
+require 'pony'
 
 # Require keys config
 require_relative 'config/keys.rb'
@@ -62,12 +63,21 @@ class Deployd < Sinatra::Base
     logger.info "resetting to HEAD"
     g.reset_hard
 
-    logger.info "pulling in #{KEYS[params[:api_key]][:deploy_dir]}"
+    logger.info "pulling in #{path}"
     g.pull
 
     logger.info "resetting to commit #{commit_tag}"
     commit = g.gcommit(commit_tag)
     g.reset_hard commit
+
+    if KEYS[params[:api_key]].has_key?(:notify)
+      opts = { :to => KEYS[params[:api_key]][:notify],
+               :subject => "Deployment notification for #{hook["repository"]["name"]}",
+               :body => "Successfuly deployed #{hook['repository']['name']}/#{branch}/#{commit_tag} to #{path}"
+      }.merge(PONY)
+      logger.info "notifying #{KEYS[params[:api_key]][:notify]}"
+      Pony.mail(opts)
+    end
   end
 
 end
