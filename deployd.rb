@@ -3,6 +3,7 @@
 require 'sinatra/base'
 require 'git'
 require 'json'
+require 'fileutils'
 
 # Require keys config
 require_relative 'config/keys.rb'
@@ -30,14 +31,38 @@ class Deployd < Sinatra::Base
 
     logger.info "valid secret for key #{params[:api_key]} received"
 
-    g = Git.open(KEYS[params[:api_key]][:working_dir], :log => logger)
+    # retrieve branch
     hook = JSON.parse request.env["rack.input"].read
+    branch = hook["ref"].split("/",3)[2]
+
+    # send 412 Precondition Failed back if pass iznogoud
+    if ! KEYS[params[:api_key]][:branches].has_key?(branch)
+      logger.error "directory for branch #{branch} not found"
+      halt 412
+    end
+
+    path = File.expand_path(KEYS[params[:api_key]][:branches][branch])
+    repos = hook["repository"]["name"]
+
+    logger.info "checking directory #{path}"
+    if Dir.exists?(path)
+      g = Git.open(File.expand_path(path + "/" + repos),
+                   :log => logger)
+    else
+      if ! Dir.exists?(path)
+        logger.info "creating directory #{path}"
+        FileUtils.mkdir_p(path)
+      end
+      logger.info "cloning #{hook["repository"]["url"]} in #{path}"
+      g = Git.clone(hook["repository"]["url"], repos, :path => path)
+    end
+
     commit_tag = hook["after"]
 
     logger.info "resetting to HEAD"
     g.reset_hard
 
-    logger.info "pulling in #{KEYS[params[:api_key]][:working_dir]}"
+    logger.info "pulling in #{KEYS[params[:api_key]][:deploy_dir]}"
     g.pull
 
     logger.info "resetting to commit #{commit_tag}"
