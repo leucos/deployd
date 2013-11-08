@@ -7,7 +7,8 @@
 
 APP="deployd"
 AS_USER="deploy"
-APP_DIR="/var/www/${AS_USER}/${APP}"
+
+eval APP_DIR=~${AS_USER}/deployd
 
 APP_CONFIG="${APP_DIR}/config"
 LOG_FILE="$APP_DIR/log/app.log"
@@ -16,9 +17,9 @@ PID_FILE="$APP_DIR/var/${APP}.pid"
 GEMFILE="$APP_DIR/Gemfile"
 APP_ENV="production"
 PORT="4567"
-BUNDLE="bundle"
+BUNDLE="bundle exec"
 
-START_CMD="$BUNDLE exec rackup -p ${PORT} -E ${APP_ENV} -P ${PID_FILE} deployd.rb"
+START_CMD="$BUNDLE rackup -p ${PORT} -E ${APP_ENV} -P ${PID_FILE} deployd.rb"
 CMD="cd ${APP_DIR}; ${START_CMD} >> ${LOG_FILE} 2>&1 &"
 
 RETVAL=0
