@@ -10,20 +10,31 @@ AS_USER="deploy"
 
 eval APP_DIR=~${AS_USER}/deployd
 
-APP_CONFIG="${APP_DIR}/config"
-LOG_FILE="$APP_DIR/log/app.log"
-LOCK_FILE="$APP_DIR/var/${APP}.lock"
-PID_FILE="$APP_DIR/var/${APP}.pid"
-GEMFILE="$APP_DIR/Gemfile"
+PID_DIR="/var/run/"
 APP_ENV="production"
-PORT="4567"
 BUNDLE="bundle exec"
+PORT="4567"
+APP_CONFIG="${APP_DIR}/config"
+
+LOG_DIR="/var/log/${APP}/"
+LOCK_FILE="${PID_DIR}/${APP}.lock"
+PID_FILE="${PID_DIR}/${APP}.pid"
+GEMFILE="$APP_DIR/Gemfile"
 
 START_CMD="$BUNDLE rackup -p ${PORT} -E ${APP_ENV} -P ${PID_FILE} deployd.rb"
-CMD="cd ${APP_DIR}; ${START_CMD} >> ${LOG_FILE} 2>&1 &"
+CMD="cd ${APP_DIR}; ${START_CMD} >> ${LOG_DIR}/${APP_ENV}.log 2> ${LOG_DIR}/${APP_ENV}_error.log &"
 
 RETVAL=0
 
+if [ -e "${PID_DIR}" ]; then
+  mkdir -p ${PID_DIR}
+  chown ${AS_USER} ${PID_DIR}
+fi
+
+if [ -e "${LOG_DIR}" ]; then
+  mkdir -p ${LOG_DIR}
+  chown ${AS_USER} ${LOG_DIR}
+fi
 
 start() {
 
@@ -44,8 +55,6 @@ start() {
   else
     echo "$APP processor is already running .. "
   fi
-
-
 }
 
 stop() {
