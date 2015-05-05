@@ -15,6 +15,9 @@ class Deployd < Sinatra::Base
 
   configure :production, :development do
     enable :logging
+    file = File.new("#{LOG_DIR}/log/#{settings.environment}.log", 'a+')
+    file.sync = true
+    use Rack::CommonLogger, file
   end
 
   post '/deploy' do

@@ -1,3 +1,8 @@
+# Logging directory
+
+LOG_DIR="/var/log/deployd/"
+
+
 # Keys setup
 #
 # Format :
