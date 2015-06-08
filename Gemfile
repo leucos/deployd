@@ -3,4 +3,7 @@ gem 'sinatra'
 gem 'git'
 gem 'pony'
 
+group :test do
+  gem 'rake'
+end
 

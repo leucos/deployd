@@ -22,7 +22,8 @@ su deploy -c 'cd deployd && bundle'
 ```
 
 - Put your app config in /home/deploy/deployd/config/keys.rb
-- Edit init script (app dir, user, ...) and copy init script at the right place :
+- Edit init script (app dir, user, ...) and copy init script at the
+  right place :
 
 
 ```
@@ -31,7 +32,7 @@ chmod +x /etc/init.d/deployd
 update-rc.d deployd defaults
 ```
 
-Note : the use deployd is run as must have WRITE privileges in the repos
+Note : the user deployd is run as must have WRITE privileges in the repos
 to be modified.
 
 # Start app
