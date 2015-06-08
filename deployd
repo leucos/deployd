@@ -26,6 +26,17 @@ end
 
 pp OPTIONS
 
+S2S = 
+  lambda do |h| 
+    Hash === h ? 
+      Hash[
+        h.map do |k, v| 
+          [k.respond_to?(:to_sym) ? k.to_sym : k, S2S[v]] 
+        end 
+      ] : h 
+  end
+
+
 class Deployd < Sinatra::Base
   set :bind, OPTIONS['bind']
   set :port, OPTIONS['port'].to_i
@@ -42,37 +53,35 @@ class Deployd < Sinatra::Base
 
   post '/deploy' do
     # send 412 Precondition Failed back if key not found
-    if ! OPTIONS['keys'].include?(params['api_key'])
-      logger.error "key #{params['api_key']} not found"
+    if ! OPTIONS['keys'].include?(params['key'])
+      logger.error "key #{params['key']} not found"
       halt 412, "Invalid credentials"
     end
 
     # send 412 Precondition Failed back if pass iznogoud
-    if OPTIONS['keys'][params['api_key']]['secret'] != params[:api_secret]
-      logger.error "key #{params['api_key']} found but password doesn't match"
-      # logger.error "#{params['api_key'][:secret]} != params[:api_secret]"
+    if OPTIONS['keys'][params['key']]['secret'] != params[:secret]
+      logger.error "key #{params['key']} found but password doesn't match"
+      # logger.error "#{params['key'][:secret]} != params[:secret]"
       halt 412, "Invalid credentials"
     end
 
-    logger.info "valid secret for key #{params[:api_key]} received"
+    logger.info "valid secret for key #{params['key']} received"
 
-    # retrieve branch
-    puts request.env.inspect
     hook = JSON.parse request.env["rack.input"].read
     branch = hook["ref"].split("/",3)[2]
 
     # send 412 Precondition Failed back if pass iznogoud
-    if ! OPTIONS['keys'][params['api_key']]['branches'].has_key?(branch)
+    if ! OPTIONS['keys'][params['key']]['branches'].has_key?(branch)
       logger.error "directory for branch #{branch} not found"
       halt 412, "Directory for branch #{branch} not found"
     end
 
-    path = File.expand_path(OPTIONS['keys'][params['api_key']]['branches'][branch])
+    path = File.expand_path(OPTIONS['keys'][params['key']]['branches'][branch]['directory'])
     repos = hook["repository"]["name"]
 
     logger.info "checking directory #{path}"
     if Dir.exists?(path)
-      g = Git.open(File.expand_path(path + "/" + repos),
+      g = Git.open(File.expand_path(path + "/"),
                    :log => logger)
     else
       if ! Dir.exists?(path)
@@ -80,7 +89,8 @@ class Deployd < Sinatra::Base
         FileUtils.mkdir_p(path)
       end
       logger.info "cloning #{hook["repository"]["url"]} in #{path}"
-      g = Git.clone(hook["repository"]["url"], repos, :path => path)
+      # We do not use repos name, just the plain path given
+      g = Git.clone(hook["repository"]["url"], '', :path => path)
     end
 
     commit_tag = hook["after"]
@@ -95,13 +105,15 @@ class Deployd < Sinatra::Base
     commit = g.gcommit(commit_tag)
     g.reset_hard commit
 
-    if OPTIONS['keys'][params['api_key']].has_key?('notify')
-      opts = { :to => OPTIONS['keys'][params['api_key']]['notify'],
+    if OPTIONS['keys'][params['key']].has_key?('notify')
+      opts = { :to => OPTIONS['keys'][params['key']]['notify'],
                :subject => "Deployment notification for #{hook["repository"]["name"]}",
                :body => "Successfuly deployed #{hook['repository']['name']}/#{branch}/#{commit_tag} to #{path}"
-      }.merge(PONY)
-      logger.info "notifying #{OPTIONS['keys'][params['api_key']]['notify']}"
-      Pony.mail(opts)
+      }.merge(OPTIONS['pony'])
+      logger.info "notifying #{OPTIONS['keys'][params['key']]['notify']}"
+      #opts = opts.inject({}){|memo,(k,v)| memo[k.to_sym] = v; memo}
+      #puts opts.inspect
+      Pony.mail(S2S[opts])
     end
   end
   run! if app_file == $0
